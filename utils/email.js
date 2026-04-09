@@ -1,3 +1,5 @@
+// Currently we're looking for an alternative instead of Mailtrap
+
 const catchAsync = require('./catchAsync');
 const { MailtrapClient } = require('mailtrap');
 const passwordResetTemplate = require('./../utils/templates/email-reset');
@@ -38,7 +40,8 @@ exports.sendPasswordResetTokenEmail = catchAsync(async (user, token) => {
     html: passwordResetTemplate(user, token),
   };
 
-  await sendEmail(options);
+  console.log("Password reset token: " + token);
+  // await sendEmail(options);
 });
 
 exports.sendEmailVerificationToken = catchAsync(async (user, token) => {
@@ -50,5 +53,6 @@ exports.sendEmailVerificationToken = catchAsync(async (user, token) => {
     html: emailVerificationTemplate(user, token),
   };
 
-  await sendEmail(options);
+  console.log("Email verification token: " + token);
+  // await sendEmail(options);
 });
