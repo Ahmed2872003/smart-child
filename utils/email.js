@@ -1,58 +1,49 @@
-// Currently we're looking for an alternative instead of Mailtrap
-
 const catchAsync = require('./catchAsync');
-const { MailtrapClient } = require('mailtrap');
+const nodemailer = require('nodemailer');
 const passwordResetTemplate = require('./../utils/templates/email-reset');
 const emailVerificationTemplate = require('./../utils/templates/email-verification');
 
 const sendEmail = catchAsync(async (options) => {
-  const TOKEN = process.env.EMAIL_TOKEN;
-
-  const client = new MailtrapClient({
-    token: TOKEN,
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_APP_PASSWORD,
+    },
   });
 
-  const sender = {
-    email: process.env.EMAIL,
-    name: 'Mailtrap Test',
-  };
-  const recipients = [
-    {
-      email: options.recipientsEmail,
-    },
-  ];
-  const response = await client.send({
-    from: sender,
-    to: recipients,
+  await transporter.sendMail({
+    from: '"Smart Child" <smartchildorg@gmail.com>',
+    to: options.recipientsEmail,
     subject: options.subject,
     html: options.html,
-    category: options.category,
   });
-  console.log('Email has been successfully sent!', response);
+
+  console.log('Email has been successfully sent!');
 });
 
 exports.sendPasswordResetTokenEmail = catchAsync(async (user, token) => {
   const options = {
     recipientsEmail: user.email,
     subject: 'Password reset token (valid for 10 min).',
-    category: 'Password Reset',
     token: token,
     html: passwordResetTemplate(user, token),
   };
 
-  console.log("Password reset token: " + token);
-  // await sendEmail(options);
+  // console.log('Password reset token: ' + token);
+  await sendEmail(options);
 });
 
 exports.sendEmailVerificationToken = catchAsync(async (user, token) => {
   const options = {
     recipientsEmail: user.email,
     subject: 'Email verification token.',
-    category: 'Email verification',
     token: token,
     html: emailVerificationTemplate(user, token),
   };
 
-  console.log("Email verification token: " + token);
-  // await sendEmail(options);
+  // console.log('Email verification token: ' + token);
+  await sendEmail(options);
 });
