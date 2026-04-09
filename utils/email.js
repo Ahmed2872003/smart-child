@@ -2,7 +2,7 @@ const catchAsync = require('./catchAsync');
 const { MailtrapClient } = require('mailtrap');
 const resetTemplate = require('../utils/templates/email-reset');
 
-const sendEmail = catchAsync(async (options) => {
+const sendEmail = catchAsync(async (options, htmlTemplate) => {
   const TOKEN = process.env.EMAIL_TOKEN;
 
   const client = new MailtrapClient({
@@ -15,21 +15,19 @@ const sendEmail = catchAsync(async (options) => {
   };
   const recipients = [
     {
-      email: options.email,
-      // email: "mohamedredaelsaid0@gmail.com",
+      email: options.recipientsEmail,
     },
   ];
-
   const response = await client.send({
     from: sender,
     to: recipients,
     subject: options.subject,
-    // text: options.message,
-    html: resetTemplate(options.token),
+    html: htmlTemplate,
     category: options.category,
   });
-  // .then(console.log, console.error);
   console.log('Email sent.', response);
 });
 
-module.exports = sendEmail;
+exports.sendPasswordResetTokenEmail = catchAsync(async (options) => {
+  await sendEmail(options, resetTemplate(options.token));
+});
