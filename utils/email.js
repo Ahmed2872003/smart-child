@@ -29,7 +29,7 @@ const sendEmail = catchAsync(async (options) => {
 });
 
 exports.sendPasswordResetTokenEmail = catchAsync(async (user, token) => {
-  const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+  const resetURL = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
   const message = `Hi ${user.name}!, forgot your password? You can visit our website with your token to reset your password: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
 
