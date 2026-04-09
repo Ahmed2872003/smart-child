@@ -14,6 +14,12 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm,
   });
 
+  const emailVerificationToken = newUser.createEmailVerificationToken();
+
+  await newUser.save({ validateBeforeSave: false });
+
+  mailer.sendEmailVerificationToken(newUser, emailVerificationToken);
+
   createSendToken(newUser, 201, res);
 });
 
@@ -57,6 +63,12 @@ exports.protect = catchAsync(async (req, res, next) => {
   if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
       new AppError('Password is recently changed! Please log in again.', 401),
+    );
+  }
+
+  if (!currentUser.verifiedEmail) {
+    return next(
+      new AppError('Please visit your inbox to verify your email.', 401),
     );
   }
 
@@ -158,3 +170,27 @@ const createSendToken = (user, statusCode, res) => {
     },
   });
 };
+
+exports.verifyEmail = catchAsync(async (req, res, next) => {
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+  });
+
+  if (!user) {
+    return next(new AppError('Token is invalid!', 400));
+  }
+
+  user.emailVerificationToken = undefined;
+  user.verifiedEmail = true;
+  await user.save();
+
+  res.status(200).json({
+    status: 'success',
+    message: 'email verified!',
+  });
+});
