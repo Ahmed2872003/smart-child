@@ -14,11 +14,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm,
   });
 
-  const emailVerificationToken = newUser.createEmailVerificationToken();
-
-  await newUser.save({ validateBeforeSave: false });
-
-  mailer.sendEmailVerificationToken(newUser, emailVerificationToken);
+  await createSendEmailVerificationToken(newUser);
 
   createSendToken(newUser, 201, res);
 });
@@ -149,29 +145,7 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, res);
 });
 
-const createSendToken = (user, statusCode, res) => {
-  const token = user.signToken();
-  const cookieOptions = {
-    expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
-    ),
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-  };
-
-  res.cookie('jwt', token, cookieOptions);
-
-  user.password = undefined;
-  res.status(statusCode).json({
-    status: 'success',
-    token,
-    data: {
-      user,
-    },
-  });
-};
-
-exports.verifyEmail = catchAsync(async (req, res, next) => {
+exports.confirmEmail = catchAsync(async (req, res, next) => {
   const hashedToken = crypto
     .createHash('sha256')
     .update(req.params.token)
@@ -194,3 +168,52 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
     message: 'email verified!',
   });
 });
+
+exports.verifyEmail = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({
+    email: req.body.email,
+  });
+
+  if (!user)
+    return next(new AppError('There is no user with this email address.', 404));
+
+  if (user.verifiedEmail)
+    return next(new AppError('Email is already verified.', 409));
+
+  await createSendEmailVerificationToken(user);
+
+  res.status(200).json({
+    status: 'success',
+    message: 'token sent to email.',
+  });
+});
+
+const createSendToken = (user, statusCode, res) => {
+  const token = user.signToken();
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
+    ),
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+  };
+
+  res.cookie('jwt', token, cookieOptions);
+
+  user.password = undefined;
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
+
+const createSendEmailVerificationToken = async (user) => {
+  const emailVerificationToken = user.createEmailVerificationToken();
+
+  await user.save({ validateBeforeSave: false });
+
+  mailer.sendEmailVerificationToken(user, emailVerificationToken);
+};
