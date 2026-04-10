@@ -16,6 +16,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   await createSendEmailVerificationToken(newUser);
 
+  newUser.emailVerificationToken = undefined;
+
   createSendToken(newUser, 201, res);
 });
 
