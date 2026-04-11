@@ -64,16 +64,23 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (!currentUser.verifiedEmail) {
-    return next(
-      new AppError('Please visit your inbox to verify your email.', 401),
-    );
-  }
-
   // GRANT ACCESS TO PROTECTED ROUTE.
   req.user = currentUser;
   next();
 });
+
+exports.restrictToVerified = (req, res, next) => {
+  if (!req.user.verifiedEmail) {
+    return next(
+      new AppError(
+        'Your email is not verified. Please verify to access this feature.',
+        403,
+      ),
+    );
+  }
+
+  next();
+};
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
